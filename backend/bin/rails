@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby.exe
+# Windows の日本語パス対策: Dir.chdir で移動してからロードする
+_base = Dir.glob("#{ENV['USERPROFILE'].gsub('\\', '/')}/Desktop/*/react_and_rails/react_rails/backend").first
+Dir.chdir(_base) if _base
+APP_PATH = File.expand_path("config/application")
+require File.expand_path("config/boot")
+require "rails/commands"
