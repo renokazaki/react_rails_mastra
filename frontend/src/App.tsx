@@ -7,14 +7,28 @@ import { TodoList } from "@/components/todo/TodoList";
 import { TodoFormDialog } from "@/components/todo/TodoFormDialog";
 import { Button } from "@/components/ui/button";
 import { useTodos } from "@/hooks/useTodos";
-import type { TodoFilters as Filters, CreateTodoInput, UpdateTodoInput } from "@/types/todo";
+import type {
+  TodoFilters as Filters,
+  CreateTodoInput,
+  UpdateTodoInput,
+} from "@/types/todo";
 import { Plus } from "lucide-react";
+import { AgentChat } from "./components/agent/AgentChat";
 
 export default function App() {
   const [filters, setFilters] = useState<Filters>({});
   const [addOpen, setAddOpen] = useState(false);
 
-  const { todos, loading, error, createTodo, updateTodo, deleteTodo, toggleTodo } = useTodos(filters);
+  const {
+    todos,
+    loading,
+    error,
+    refetch,
+    createTodo,
+    updateTodo,
+    deleteTodo,
+    toggleTodo,
+  } = useTodos(filters);
 
   const handleCreate = async (input: CreateTodoInput | UpdateTodoInput) => {
     try {
@@ -69,7 +83,10 @@ export default function App() {
             { label: "未完了", value: pending },
             { label: "完了", value: completed },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl border bg-card p-4 text-center">
+            <div
+              key={label}
+              className="rounded-xl border bg-card p-4 text-center"
+            >
               <p className="text-2xl font-bold">{value}</p>
               <p className="text-xs text-muted-foreground mt-1">{label}</p>
             </div>
@@ -80,7 +97,11 @@ export default function App() {
         <TodoFilters filters={filters} onChange={setFilters} />
 
         {/* Add button */}
-        <Button onClick={() => setAddOpen(true)} className="w-full gap-2" size="lg">
+        <Button
+          onClick={() => setAddOpen(true)}
+          className="w-full gap-2"
+          size="lg"
+        >
           <Plus className="h-4 w-4" />
           新しい Todo を追加
         </Button>
@@ -102,8 +123,13 @@ export default function App() {
         />
       </main>
 
-      <TodoFormDialog open={addOpen} onOpenChange={setAddOpen} onSubmit={handleCreate} />
+      <TodoFormDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onSubmit={handleCreate}
+      />
       <Toaster richColors position="bottom-right" />
+      <AgentChat onAction={refetch} />
     </div>
   );
 }
