@@ -1,1 +1,17 @@
 .claude/
+backend/config/master.key
+backend/config/credentials.yml.enc
+frontend/node_modules
+frontend/dist
+
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+frontend/.mastra
+frontend/.agent
+frontend/src/mastra/public/
+*.duckdb
+

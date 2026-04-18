@@ -8,15 +8,15 @@
 ## 0. Mastra とは
 
 **Mastra** は TypeScript 製の AI エージェントフレームワーク。  
-「エージェント」「ツール」「ワークフロー」を宣言的に定義でき、Claude や GPT などのモデルと繋げられる。
+「エージェント」「ツール」「ワークフロー」を宣言的に定義でき、Gemini や GPT などのモデルと繋げられる。
 
 ### 核となる 3 つの概念
 
-| 概念 | 役割 | 例 |
-|---|---|---|
-| **Agent** | 会話の司令塔。指示・モデル・ツールをまとめる | `todoAgent` |
-| **Tool** | エージェントが実行できる具体的なアクション | `createTodo`, `deleteTodo` |
-| **Model** | 裏で動く LLM | `claude-sonnet-4-6` |
+| 概念      | 役割                                         | 例                         |
+| --------- | -------------------------------------------- | -------------------------- |
+| **Agent** | 会話の司令塔。指示・モデル・ツールをまとめる | `todoAgent`                |
+| **Tool**  | エージェントが実行できる具体的なアクション   | `createTodo`, `deleteTodo` |
+| **Model** | 裏で動く LLM                                 | `gemini-3-flash-preview`   |
 
 ---
 
@@ -24,12 +24,12 @@
 
 ```bash
 cd frontend
-npm install @mastra/core @ai-sdk/anthropic
+npm install @mastra/core @ai-sdk/google
 ```
 
-> **なぜ `@ai-sdk/anthropic`?**  
+> **なぜ `@ai-sdk/google`?**  
 > Mastra は [Vercel AI SDK](https://sdk.vercel.ai/) のモデルアダプターを使う。  
-> Anthropic のモデルを使うにはこのパッケージが必要。
+> Gemini のモデルを使うにはこのパッケージが必要。
 
 ---
 
@@ -59,7 +59,8 @@ mkdir -p frontend/src/mastra
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000/api/v1";
 
 // --- 共通: API を叩く関数 ---
 async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
@@ -77,9 +78,13 @@ export const listTodos = createTool({
   id: "listTodos",
   description: "Todo の一覧を取得する。ステータス・優先度でフィルタできる",
   inputSchema: z.object({
-    status: z.enum(["pending", "completed"]).optional()
+    status: z
+      .enum(["pending", "completed"])
+      .optional()
       .describe("フィルタするステータス"),
-    priority: z.enum(["low", "medium", "high"]).optional()
+    priority: z
+      .enum(["low", "medium", "high"])
+      .optional()
       .describe("フィルタする優先度"),
   }),
   execute: async ({ context }) => {
@@ -98,7 +103,9 @@ export const createTodo = createTool({
   inputSchema: z.object({
     title: z.string().describe("Todo のタイトル（必須）"),
     description: z.string().optional().describe("詳細説明"),
-    priority: z.enum(["low", "medium", "high"]).optional()
+    priority: z
+      .enum(["low", "medium", "high"])
+      .optional()
       .describe("優先度（デフォルト: medium）"),
     due_date: z.string().optional().describe("期限日 YYYY-MM-DD 形式"),
   }),
@@ -172,10 +179,17 @@ export const completeTodo = createTool({
 
 ```typescript
 import { Agent } from "@mastra/core/agent";
-import { anthropic } from "@ai-sdk/anthropic";
-import { listTodos, createTodo, updateTodo, deleteTodo, completeTodo } from "./tools";
+import { google } from "@ai-sdk/google";
+import {
+  listTodos,
+  createTodo,
+  updateTodo,
+  deleteTodo,
+  completeTodo,
+} from "./tools";
 
 export const todoAgent = new Agent({
+  id: "todo-agent",
   name: "Todo Assistant",
 
   // エージェントへの指示（System Prompt に相当）
@@ -192,7 +206,7 @@ export const todoAgent = new Agent({
   `,
 
   // 使用するモデル
-  model: anthropic("claude-sonnet-4-6"),
+  model: google("gemini-3-flash-preview"),
 
   // 使えるツール
   tools: { listTodos, createTodo, updateTodo, deleteTodo, completeTodo },
@@ -201,34 +215,41 @@ export const todoAgent = new Agent({
 
 ---
 
-## 5. 環境変数の設定
+## 5. 環境変数の設定（バックエンドの `.env` を使う）
 
-`frontend/.env.local` に Anthropic の API キーを追加:
+このハンズオンは学習用としてフロントエンド単体でも動かせるが、API キーをブラウザに露出しないために、**バックエンドの `.env` から参照する構成**にする。
+
+### 5-1. Rails 側 `.env` に Gemini API キーを設定
+
+`backend/.env`（または `backend/.env.development`）に以下を追加:
+
+```
+GOOGLE_GENERATIVE_AI_API_KEY=xxxxxxxxxxxxxxxx
+```
+
+> Mastra / AI SDK の Google プロバイダでは、`google("...")` 利用時に `GOOGLE_GENERATIVE_AI_API_KEY` が参照される。
+> そのためフロント側 `.env.local` に `VITE_` で API キーを置く必要はない。
+
+### 5-2. フロント側 `.env.local` は API URL のみ
+
+`frontend/.env.local`:
 
 ```
 VITE_API_BASE_URL=http://localhost:3000/api/v1
-VITE_ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
 ```
 
-> **注意**: `VITE_` プレフィックスをつけると Vite がブラウザのコードにバンドルする。  
-> 本番環境ではサーバーサイドで処理するべきだが、今は練習なのでこのまま進める。
+### 5-3. 重要: フロントから Gemini を直接呼ばない
 
-Mastra がブラウザで動くよう、`vite.config.ts` に API キーを渡す設定を追加する必要がある。  
-`@ai-sdk/anthropic` の初期化時にキーを渡す方法:
+現在の `frontend/src/mastra/agent.ts` はブラウザ内で `google(...)` を呼ぶ構成。  
+このままだと API キーをフロントで扱う必要があるため、**バックエンド `.env` 参照にしたい場合は、LLM 呼び出しを Rails 側 API に寄せる**。
 
-```typescript
-// frontend/src/mastra/agent.ts の import 部分を修正
-import { createAnthropic } from "@ai-sdk/anthropic";
+最小構成の考え方:
 
-const anthropicProvider = createAnthropic({
-  apiKey: import.meta.env.VITE_ANTHROPIC_API_KEY,
-});
+1. Rails に `POST /api/v1/ai/chat` を追加  
+2. そのアクション内で `ENV["GOOGLE_GENERATIVE_AI_API_KEY"]` を使って Gemini API を呼ぶ  
+3. フロントは `todoAgent.generate(...)` の代わりに `fetch("/api/v1/ai/chat")` で Rails 経由で会話する
 
-// model: の行を変更
-model: anthropicProvider("claude-sonnet-4-6"),
-```
-
----
+> まずは「動かして学ぶ」ことを優先するなら、いったんフロント直呼びで完了させ、次ステップで Rails 側へ移行しても OK。
 
 ## 6. チャット UI コンポーネントを作る
 
@@ -259,7 +280,10 @@ interface Props {
 
 export function AgentChat({ onAction }: Props) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "こんにちは！Todo の管理をお手伝いします。何かお気軽にどうぞ。" },
+    {
+      role: "assistant",
+      content: "こんにちは！Todo の管理をお手伝いします。何かお気軽にどうぞ。",
+    },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -412,6 +436,32 @@ const { todos, loading, error, refetch, createTodo, ... } = useTodos(filters);
 
 ## 8. 動作確認
 
+### 起動手順（現在実装をそのまま動かす）
+
+ターミナル 1（Rails API）:
+
+```bash
+cd backend
+bin/rails s
+```
+
+ターミナル 2（React + Mastra）:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+ブラウザで Vite の URL（通常 `http://localhost:5173`）を開き、右下の Bot ボタンからチャットを開いて確認する。
+
+### 「バックエンド `.env` 参照」構成での起動イメージ
+
+1. `backend/.env` に `GOOGLE_GENERATIVE_AI_API_KEY` を設定  
+2. Rails を起動（`bin/rails s`）  
+3. React を起動（`npm run dev`）  
+4. チャット送信時にフロント -> Rails (`/api/v1/ai/chat`) -> Gemini の順で処理されることを確認
+
 ### 試してみるプロンプト例
 
 ```
@@ -437,25 +487,25 @@ const { todos, loading, error, refetch, createTodo, ... } = useTodos(filters);
 ```
 ユーザーの入力
     ↓
-Claude にメッセージ + ツール一覧を送信
+Gemini にメッセージ + ツール一覧を送信
     ↓
-Claude が「このツールを使う」と判断 → ToolCall を返す
+Gemini が「このツールを使う」と判断 → ToolCall を返す
     ↓
 Mastra がツールを実行（= API を叩く）
     ↓
-実行結果を Claude に送り返す
+実行結果を Gemini に送り返す
     ↓
-Claude が結果を解釈して日本語で返答
+Gemini が結果を解釈して日本語で返答
 ```
 
 この「モデルがツールを呼ぶ → 結果を受け取る → 返答する」サイクルを **Tool Use（Function Calling）** という。
 
 ### `generate` vs `stream`
 
-| メソッド | 動作 |
-|---|---|
-| `agent.generate(messages)` | 返答が完成してから一括で返す |
-| `agent.stream(messages)` | 返答をストリームで少しずつ返す（タイピングアニメーション） |
+| メソッド                   | 動作                                                       |
+| -------------------------- | ---------------------------------------------------------- |
+| `agent.generate(messages)` | 返答が完成してから一括で返す                               |
+| `agent.stream(messages)`   | 返答をストリームで少しずつ返す（タイピングアニメーション） |
 
 より UX を良くしたい場合は `stream` を使って逐次表示にする。
 
@@ -463,21 +513,22 @@ Claude が結果を解釈して日本語で返答
 
 ## 10. よくあるエラーと対処法
 
-| エラー | 原因 | 対処 |
-|---|---|---|
-| `Anthropic API key not found` | 環境変数未設定 | `.env.local` に `VITE_ANTHROPIC_API_KEY` を追加 |
-| ツールが呼ばれない | description が不明確 | ツールの description をより具体的にする |
-| 存在しない ID を操作しようとする | AI が ID を推測している | `listTodos` で確認してから操作するよう instructions に追記 |
-| `CORS error` from API | Rails サーバーが起動していない | `rails s` で起動を確認 |
+| エラー                           | 原因                           | 対処                                                       |
+| -------------------------------- | ------------------------------ | ---------------------------------------------------------- |
+| `Google API key not found`       | 環境変数未設定                 | `backend/.env` に `GOOGLE_GENERATIVE_AI_API_KEY` を追加   |
+| ツールが呼ばれない               | description が不明確           | ツールの description をより具体的にする                    |
+| 存在しない ID を操作しようとする | AI が ID を推測している        | `listTodos` で確認してから操作するよう instructions に追記 |
+| `CORS error` from API            | Rails サーバーが起動していない | `rails s` で起動を確認                                     |
 
 ---
 
 ## チェックリスト
 
-- [ ] `npm install @mastra/core @ai-sdk/anthropic` を実行
+- [ ] `npm install @mastra/core @ai-sdk/google` を実行
 - [ ] `src/mastra/tools.ts` を作成（5 つのツール）
 - [ ] `src/mastra/agent.ts` を作成
-- [ ] `.env.local` に `VITE_ANTHROPIC_API_KEY` を追加
+- [ ] `backend/.env` に `GOOGLE_GENERATIVE_AI_API_KEY` を追加
+- [ ] `frontend/.env.local` に `VITE_API_BASE_URL` を追加
 - [ ] `src/components/agent/AgentChat.tsx` を作成
 - [ ] `App.tsx` に `<AgentChat onAction={refetch} />` を追加
 - [ ] 開発サーバーを起動してチャットから Todo を操作できることを確認
