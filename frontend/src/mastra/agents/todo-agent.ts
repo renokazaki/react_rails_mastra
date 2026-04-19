@@ -5,7 +5,7 @@ import {
   updateTodo,
   deleteTodo,
   completeTodo,
-} from "../tools/tools";
+} from "../tools/todo-tool";
 
 export const todoAgent = new Agent({
   id: "todo-agent",
@@ -24,8 +24,9 @@ export const todoAgent = new Agent({
     - 曖昧な指示（「古いタスク」「完了していないもの」など）は listTodos で確認してから操作してください
   `,
 
-  // 使用するモデル
-  model: "google/gemini-3-flash-preview",
+  // 使用するモデル 以下からrateを確認しながらmodel変更
+  //https://aistudio.google.com/rate-limit?timeRange=last-28-days
+  model: "google/gemini-2.5-flash",
 
   // 使えるツール
   tools: { listTodos, createTodo, updateTodo, deleteTodo, completeTodo },
