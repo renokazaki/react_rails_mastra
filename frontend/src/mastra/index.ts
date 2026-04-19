@@ -15,7 +15,7 @@ import {
 import { weatherWorkflow } from "./workflows/weather-workflow";
 import { weatherAgent } from "./agents/weather-agent";
 import { chatRoute } from "@mastra/ai-sdk";
-import { todoAgent } from "../mastra_bk/agents/agent";
+import { todoAgent } from "./agents/todo-agent";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: resolve(currentDir, "../../.env"), override: false });
