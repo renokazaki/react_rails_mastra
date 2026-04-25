@@ -53,7 +53,7 @@ export function AgentChat({ onAction }: Props) {
       ];
 
       const response = await fetch(
-        `${MASTRA_API_BASE}/agents/todo-agent/generate`,
+        `${MASTRA_API_BASE}/agents/todo-orchestrator-agent/generate`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

@@ -14,6 +14,10 @@ import {
 } from "@mastra/observability";
 import { weatherWorkflow } from "./workflows/weather-workflow";
 import { weatherAgent } from "./agents/weather-agent";
+import { receiptAnalyzerAgent } from "./agents/receipt-analyzer-agent";
+import { todoDecomposerAgent } from "./agents/todo-decomposer-agent";
+import { todoOrchestratorAgent } from "./agents/todo-orchestrator-agent";
+
 import { chatRoute } from "@mastra/ai-sdk";
 import { todoAgent } from "./agents/todo-agent";
 
@@ -22,7 +26,7 @@ loadEnv({ path: resolve(currentDir, "../../.env"), override: false });
 
 export const mastra = new Mastra({
   workflows: { weatherWorkflow },
-  agents: { weatherAgent, todoAgent },
+  agents: { weatherAgent, todoAgent, receiptAnalyzerAgent, todoDecomposerAgent, todoOrchestratorAgent },
   storage: new MastraCompositeStore({
     id: "composite-storage",
     default: new LibSQLStore({
